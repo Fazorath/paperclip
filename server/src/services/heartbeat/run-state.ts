@@ -1938,23 +1938,23 @@ export function createHeartbeatRunState(db: Db) {
             }
           : undefined,
       );
-      if (taskKey) {
-        await db
-          .update(issues)
-          .set({
-            conversationSessionGeneration: sql`${issues.conversationSessionGeneration} + 1`,
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(issues.companyId, agent.companyId),
-              eq(issues.conversationAgentId, agent.id),
-              isUuidLike(taskKey)
+      await db
+        .update(issues)
+        .set({
+          conversationSessionGeneration: sql`${issues.conversationSessionGeneration} + 1`,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(issues.companyId, agent.companyId),
+            eq(issues.conversationAgentId, agent.id),
+            taskKey
+              ? isUuidLike(taskKey)
                 ? eq(issues.id, taskKey)
-                : eq(issues.identifier, taskKey.toUpperCase()),
-            ),
-          );
-      }
+                : eq(issues.identifier, taskKey.toUpperCase())
+              : undefined,
+          ),
+        );
       const runtimePatch: Partial<typeof agentRuntimeState.$inferInsert> = {
         sessionId: null,
         lastError: null,

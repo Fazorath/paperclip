@@ -284,4 +284,28 @@ describePostgres("task-scoped runtime session reset", () => {
     expect(await generation(seeded.issueId)).toBe(1);
     expect(await generation(seeded.otherIssueId)).toBe(0);
   });
+  it("bumps every conversation generation for the agent when no task is selected", async () => {
+    const seeded = await fixture();
+    const conversationUserId = randomUUID();
+    const conversation = (agentId: string) => ({
+      conversationAgentId: agentId,
+      conversationUserId,
+      conversationState: "active",
+      assigneeAgentId: agentId,
+    });
+    await db
+      .update(issues)
+      .set(conversation(seeded.agentId))
+      .where(eq(issues.id, seeded.issueId));
+    await db
+      .update(issues)
+      .set(conversation(seeded.otherAgentId))
+      .where(eq(issues.id, seeded.otherIssueId));
+    await heartbeatService(db).resetRuntimeSession(seeded.agentId);
+    const generation = async (id: string) =>
+      (await db.select().from(issues).where(eq(issues.id, id)))[0]
+        ?.conversationSessionGeneration;
+    expect(await generation(seeded.issueId)).toBe(1);
+    expect(await generation(seeded.otherIssueId)).toBe(0);
+  });
 });
